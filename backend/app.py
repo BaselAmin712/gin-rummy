@@ -24,7 +24,7 @@ class GameState(BaseModel):
     _id (ObjectId) is the internal MongoDB ID. We'll store it
     as a string in the 'id' field for easier JSON serialization.
     """
-    id: Optional[str] = Field(alias="_id")
+    # id: Optional[str] = Field(alias="_id")
     game_id: str
     players: List[str] = []
     scores: Dict[str, int] = Field(default_factory=dict)
@@ -55,16 +55,16 @@ games_collection = None
 # Startup / Shutdown Events
 # ------------------------------------------------------------
 @app.on_event("startup")
-def startup_db_client():
+def startup_db_client(DB_NAME = "ginrummy_db", COLLECTION_NAME = "games"):
     """
     Connect to MongoDB (synchronously) on startup.
     """
     global client, games_collection
     logger.info("Starting up MongoDB client...")
     try:
-        client = MongoClient("mongodb://localhost:27017")
-        db = client["ginrummy_db"]
-        games_collection = db["games"]
+        client = MongoClient("mongodb://192.168.68.194:27017")
+        db = client[DB_NAME]
+        games_collection = db[COLLECTION_NAME]
         logger.info("MongoDB client connected successfully.")
     except Exception as e:
         logger.exception("Failed to connect to MongoDB.")

@@ -1,42 +1,44 @@
 import pytest
+import app.utils.globals as globals
 from fastapi.testclient import TestClient
 from pymongo import MongoClient
-from app import app, startup_db_client, shutdown_db_client
+from app.main import server, on_startup, on_shutdown
 
-# Use a test database instead of the main one
 TEST_DB_NAME = "test_ginrummy_db"
 TEST_COLLECTION_NAME = "test_games"
 
-# Override the MongoDB client to use a test database
 @pytest.fixture(scope="module")
 def test_db():
     """
     Setup a test MongoDB database before running tests.
     Cleanup after tests are completed.
     """
-    client = MongoClient("mongodb://192.168.68.194:27017")  # Use the correct IP of your MongoDB server
+    client = MongoClient("mongodb://192.168.68.194:27017")
     test_db = client[TEST_DB_NAME]
     test_collection = test_db[TEST_COLLECTION_NAME]
 
-    # Ensure the collection is empty before running tests
+    # Clear the collection before tests
     test_collection.delete_many({})
 
-    yield test_collection  # Provide the collection to the tests
+    yield test_collection
 
-    # Cleanup after tests
+    # Drop the DB after tests
     test_collection.delete_many({})
-    client.drop_database(TEST_DB_NAME)  # Remove test DB after tests
-
+    client.drop_database(TEST_DB_NAME)
 
 @pytest.fixture(scope="module")
 def test_client():
     """
-    Setup FastAPI test client.
+    Setup FastAPI test client with a test DB.
     """
-    startup_db_client(TEST_DB_NAME, TEST_COLLECTION_NAME)  # Initialize MongoDB connection
-    client = TestClient(app)
+    # Manually init the test DB instead of relying on the startup event
+    globals.PROD_MODE = False
+    on_startup()
+    client = TestClient(server)
     yield client
-    shutdown_db_client()  # Close MongoDB connection
+    on_shutdown()
+    globals.PROD_MODE = True
+    
 
 
 # --------------------------------------------------------
